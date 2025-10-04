@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gemini Image Generator</title>
+    <title>Storybook Generator</title>
     <style>
         * {
             margin: 0;
@@ -164,25 +164,68 @@
 </head>
 <body>
     <div class="container">
-        <h1>Gemini Image Generator</h1>
+        <h1>Storybook Generator</h1>
 
-        <form id="imageForm">
+        <!-- Setup Form (shown first time) -->
+        <form id="setupForm" style="display: block;">
+            <h2 style="font-size: 20px; margin-bottom: 20px; color: #555;">Setup Your Character</h2>
+
             <div class="form-group">
-                <label for="sourceFile">Upload Source File:</label>
+                <label for="sourceFile">Upload Child's Photo:</label>
                 <input type="file" id="sourceFile" accept="image/*" required>
-                <div id="filePreview" class="preview"></div>
+                <div id="imagePreview" style="margin-top: 15px; display: none;">
+                    <img id="previewImg" style="width: 100%; max-width: 300px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" alt="Preview">
+                </div>
             </div>
 
             <div class="form-group">
-                <label for="prompt">Enter Prompt:</label>
-                <textarea id="prompt" placeholder="Describe the image you want to generate..." required></textarea>
+                <label for="kidName">Child's Name:</label>
+                <input type="text" id="kidName" placeholder="Enter child's name..." required style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
             </div>
 
-            <button type="submit" id="generateBtn">Generate Image</button>
+            <div class="form-group">
+                <label for="kidAge">Child's Age:</label>
+                <input type="number" id="kidAge" placeholder="Age" min="1" max="12" required style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
+            </div>
+
+            <div class="form-group">
+                <label for="kidGender">Gender:</label>
+                <select id="kidGender" required style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
+                    <option value="">Select gender...</option>
+                    <option value="boy">Boy</option>
+                    <option value="girl">Girl</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="favoriteThing">Favorite Thing to Do:</label>
+                <input type="text" id="favoriteThing" placeholder="e.g., playing soccer, drawing, exploring..." required style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
+            </div>
+
+            <button type="submit" id="setupBtn">Save & Continue</button>
+        </form>
+
+        <!-- Story Generation Form (shown after setup) -->
+        <form id="storyForm" style="display: none;">
+            <div id="characterInfo" style="background: #f8f9ff; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; align-items: center; gap: 15px;">
+                <img id="savedPreviewImg" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover; box-shadow: 0 2px 8px rgba(0,0,0,0.15);" alt="Character">
+                <div>
+                    <div id="characterName" style="font-weight: 600; font-size: 16px; color: #333;"></div>
+                    <div id="characterDetails" style="font-size: 14px; color: #666;"></div>
+                </div>
+                <button type="button" id="resetBtn" style="margin-left: auto; padding: 8px 16px; background: #e0e0e0; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">Change Character</button>
+            </div>
+
+            <div class="form-group">
+                <label for="prompt">Story Prompt:</label>
+                <textarea id="prompt" placeholder="Describe the scene or story you want to create..." required></textarea>
+            </div>
+
+            <button type="submit" id="generateBtn">Generate Storybook Page</button>
         </form>
 
         <div class="loading" id="loading">
-            <p>Generating image...</p>
+            <p>Generating storybook page...</p>
         </div>
 
         <div class="error" id="error"></div>
@@ -196,34 +239,108 @@
     <script>
         const API_KEY = 'AIzaSyCsRiCoqsUXV0fsmQP1QAh6dijt-Pi0pgo';
 
-        const form = document.getElementById('imageForm');
+        const setupForm = document.getElementById('setupForm');
+        const storyForm = document.getElementById('storyForm');
         const fileInput = document.getElementById('sourceFile');
         const promptInput = document.getElementById('prompt');
-        const generateBtn = document.getElementById('generateBtn');
+        const kidNameInput = document.getElementById('kidName');
+        const kidAgeInput = document.getElementById('kidAge');
+        const kidGenderInput = document.getElementById('kidGender');
+        const favoriteThingInput = document.getElementById('favoriteThing');
         const loading = document.getElementById('loading');
         const error = document.getElementById('error');
         const result = document.getElementById('result');
-        const generatedImage = document.getElementById('generatedImage');
-        const filePreview = document.getElementById('filePreview');
+        const imagePreview = document.getElementById('imagePreview');
+        const previewImg = document.getElementById('previewImg');
+        const savedPreviewImg = document.getElementById('savedPreviewImg');
+        const characterName = document.getElementById('characterName');
+        const characterDetails = document.getElementById('characterDetails');
+        const resetBtn = document.getElementById('resetBtn');
+
+        // Saved character data
+        let savedCharacter = null;
+
+        // Load saved character from localStorage on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            const saved = localStorage.getItem('storybookCharacter');
+            if (saved) {
+                savedCharacter = JSON.parse(saved);
+                showStoryForm();
+            }
+        });
 
         fileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) {
-                filePreview.textContent = `Selected: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`;
-                filePreview.classList.add('active');
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    previewImg.src = e.target.result;
+                    imagePreview.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
             } else {
-                filePreview.classList.remove('active');
+                imagePreview.style.display = 'none';
             }
         });
 
-        form.addEventListener('submit', async (e) => {
+        // Setup form submission
+        setupForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
             const file = fileInput.files[0];
+            const kidName = kidNameInput.value.trim();
+            const kidAge = kidAgeInput.value;
+            const kidGender = kidGenderInput.value;
+            const favoriteThing = favoriteThingInput.value.trim();
+
+            if (!file || !kidName || !kidAge || !kidGender || !favoriteThing) {
+                showError('Please fill in all fields.');
+                return;
+            }
+
+            // Save character data
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                savedCharacter = {
+                    image: e.target.result,
+                    name: kidName,
+                    age: kidAge,
+                    gender: kidGender,
+                    favoriteThing: favoriteThing
+                };
+                localStorage.setItem('storybookCharacter', JSON.stringify(savedCharacter));
+                showStoryForm();
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // Reset button
+        resetBtn.addEventListener('click', () => {
+            localStorage.removeItem('storybookCharacter');
+            savedCharacter = null;
+            setupForm.style.display = 'block';
+            storyForm.style.display = 'none';
+            setupForm.reset();
+            imagePreview.style.display = 'none';
+        });
+
+        // Show story form with saved character
+        function showStoryForm() {
+            setupForm.style.display = 'none';
+            storyForm.style.display = 'block';
+            savedPreviewImg.src = savedCharacter.image;
+            characterName.textContent = savedCharacter.name;
+            characterDetails.textContent = `${savedCharacter.age} years old • ${savedCharacter.gender} • Loves ${savedCharacter.favoriteThing}`;
+        }
+
+        // Story form submission
+        storyForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
             const prompt = promptInput.value.trim();
 
-            if (!file || !prompt) {
-                showError('Please provide both a file and a prompt.');
+            if (!prompt) {
+                showError('Please enter a story prompt.');
                 return;
             }
 
@@ -234,12 +351,11 @@
             generateBtn.disabled = true;
 
             try {
-                // Convert file to base64
-                const base64 = await fileToBase64(file);
-                const base64Data = base64.split(',')[1];
+                // Use saved character image
+                const base64Data = savedCharacter.image.split(',')[1];
 
-                // Make API request using Gemini image generation API
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent`, {
+                // Make API request using Gemini image generation API (streaming)
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:streamGenerateContent?alt=sse`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -250,11 +366,11 @@
                             role: "user",
                             parts: [
                                 {
-                                    text: prompt
+                                    text: `Based on this source image, ${prompt}\n\nThe main character is ${savedCharacter.name}, a ${savedCharacter.age}-year-old ${savedCharacter.gender} who loves ${savedCharacter.favoriteThing}. Write a short, engaging story text (2-3 sentences) suitable for children featuring ${savedCharacter.name} that goes along with the generated image.`
                                 },
                                 {
                                     inline_data: {
-                                        mime_type: file.type,
+                                        mime_type: 'image/jpeg',
                                         data: base64Data
                                     }
                                 }
@@ -266,50 +382,88 @@
                     })
                 });
 
-                const data = await response.json();
-
                 if (!response.ok) {
-                    throw new Error(data.error?.message || 'Failed to generate image');
+                    const errorData = await response.json();
+                    throw new Error(errorData.error?.message || 'Failed to generate content');
                 }
 
-                // Log the full response for debugging
-                console.log('Full API Response:', JSON.stringify(data, null, 2));
+                // Process streaming response
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+                let imageData = null;
+                let storyText = '';
 
-                // Display generated image
-                if (data.candidates && data.candidates[0]?.content?.parts) {
-                    const parts = data.candidates[0].content.parts;
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
 
-                    console.log('Parts:', parts);
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop();
 
-                    // Look for inline_data with image
-                    const imagePart = parts.find(part => part.inlineData && part.inlineData.data);
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            try {
+                                const jsonData = JSON.parse(line.slice(6));
+                                console.log('Chunk:', jsonData);
 
-                    if (imagePart) {
-                        const mimeType = imagePart.inlineData.mimeType;
-                        const imageData = imagePart.inlineData.data;
-
-                        const resultDiv = document.getElementById('result');
-                        resultDiv.innerHTML = `
-                            <h3 style="margin-bottom: 15px; color: #333;">Generated Image:</h3>
-                            <img src="data:${mimeType};base64,${imageData}" alt="Generated image" style="width: 100%; border-radius: 8px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);">
-                        `;
-
-                        // Also show any text response
-                        const textPart = parts.find(part => part.text);
-                        if (textPart) {
-                            resultDiv.innerHTML += `
-                                <div style="margin-top: 20px; background: #f8f9ff; padding: 15px; border-radius: 8px;">
-                                    <strong>Description:</strong><br>${textPart.text}
-                                </div>
-                            `;
+                                if (jsonData.candidates?.[0]?.content?.parts) {
+                                    for (const part of jsonData.candidates[0].content.parts) {
+                                        if (part.inlineData?.data || part.inline_data?.data) {
+                                            imageData = {
+                                                data: part.inlineData?.data || part.inline_data?.data,
+                                                mimeType: part.inlineData?.mimeType || part.inline_data?.mime_type || 'image/png'
+                                            };
+                                            console.log('Found image data! Length:', imageData.data.length);
+                                        }
+                                        if (part.text) {
+                                            storyText += part.text;
+                                        }
+                                    }
+                                }
+                            } catch (e) {
+                                console.warn('Failed to parse chunk:', e);
+                            }
                         }
-                        result.classList.add('active');
-                    } else {
-                        throw new Error('No image data returned from API. Check console for full response.');
                     }
-                } else {
-                    throw new Error('No response returned from API');
                 }
+
+                const data = { imageData, storyText };
+
+                // Display results
+                console.log('Image Data:', imageData);
+                console.log('Story Text:', storyText);
+
+                const resultDiv = document.getElementById('result');
+
+                if (imageData) {
+                    resultDiv.innerHTML = `
+                        <div style="background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);">
+                            <img src="data:${imageData.mimeType};base64,${imageData.data}" alt="Storybook illustration" style="width: 100%; display: block;">
+                            <div style="padding: 25px; background: linear-gradient(135deg, #f8f9ff 0%, #fff 100%);">
+                                <div style="font-size: 18px; line-height: 1.6; color: #333; font-family: 'Georgia', serif;">
+                                    ${storyText || 'Generated image'}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else if (storyText) {
+                    resultDiv.innerHTML = `
+                        <div style="background: #fff; border-radius: 8px; padding: 25px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);">
+                            <div style="font-size: 18px; line-height: 1.6; color: #333; font-family: 'Georgia', serif;">
+                                ${storyText}
+                            </div>
+                            <div style="margin-top: 15px; padding: 10px; background: #fff3cd; border-radius: 5px; font-size: 14px; color: #856404;">
+                                Note: API generated text only. Image generation may require different API configuration.
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    throw new Error('No content generated from API');
+                }
+
+                result.classList.add('active');
 
             } catch (err) {
                 showError(err.message);
