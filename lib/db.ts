@@ -19,6 +19,7 @@ db.exec(`
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     character_id INTEGER,
     prompt TEXT NOT NULL,
+    template_id TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (character_id) REFERENCES characters(id)
   );

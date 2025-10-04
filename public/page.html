@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Storybook Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -164,14 +166,19 @@
 </head>
 <body>
     <div class="container">
-        <h1>Storybook Generator</h1>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h1 data-translate="title">Storybook Generator</h1>
+            <button id="langToggle" style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">
+                עברית / English
+            </button>
+        </div>
 
         <!-- Setup Form (shown first time) -->
         <form id="setupForm" style="display: block;">
-            <h2 style="font-size: 20px; margin-bottom: 20px; color: #555;">Setup Your Character</h2>
+            <h2 style="font-size: 20px; margin-bottom: 20px; color: #555;" data-translate="setupTitle">Setup Your Character</h2>
 
             <div class="form-group">
-                <label for="sourceFile">Upload Child's Photo:</label>
+                <label for="sourceFile" data-translate="uploadPhoto">Upload Child's Photo:</label>
                 <input type="file" id="sourceFile" accept="image/*" required>
                 <div id="imagePreview" style="margin-top: 15px; display: none;">
                     <img id="previewImg" style="width: 100%; max-width: 300px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" alt="Preview">
@@ -179,30 +186,30 @@
             </div>
 
             <div class="form-group">
-                <label for="kidName">Child's Name:</label>
-                <input type="text" id="kidName" placeholder="Enter child's name..." required style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
+                <label for="kidName" data-translate="childName">Child's Name:</label>
+                <input type="text" id="kidName" data-translate-placeholder="childNamePlaceholder" placeholder="Enter child's name..." required style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
             </div>
 
             <div class="form-group">
-                <label for="kidAge">Child's Age:</label>
-                <input type="number" id="kidAge" placeholder="Age" min="1" max="12" required style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
+                <label for="kidAge" data-translate="childAge">Child's Age:</label>
+                <input type="number" id="kidAge" data-translate-placeholder="agePlaceholder" placeholder="Age" min="1" max="12" required style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
             </div>
 
             <div class="form-group">
-                <label for="kidGender">Gender:</label>
+                <label for="kidGender" data-translate="gender">Gender:</label>
                 <select id="kidGender" required style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
-                    <option value="">Select gender...</option>
-                    <option value="boy">Boy</option>
-                    <option value="girl">Girl</option>
+                    <option value="" data-translate="selectGender">Select gender...</option>
+                    <option value="boy" data-translate="boy">Boy</option>
+                    <option value="girl" data-translate="girl">Girl</option>
                 </select>
             </div>
 
             <div class="form-group">
-                <label for="favoriteThing">Favorite Thing to Do:</label>
-                <input type="text" id="favoriteThing" placeholder="e.g., playing soccer, drawing, exploring..." required style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
+                <label for="favoriteThing" data-translate="favoriteThing">Favorite Thing to Do:</label>
+                <input type="text" id="favoriteThing" data-translate-placeholder="favoriteThingPlaceholder" placeholder="e.g., playing soccer, drawing, exploring..." required style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
             </div>
 
-            <button type="submit" id="setupBtn">Save & Continue</button>
+            <button type="submit" id="setupBtn" data-translate="saveButton">Save & Continue</button>
         </form>
 
         <!-- Story Generation Form (shown after setup) -->
@@ -213,16 +220,18 @@
                     <div id="characterName" style="font-weight: 600; font-size: 16px; color: #333;"></div>
                     <div id="characterDetails" style="font-size: 14px; color: #666;"></div>
                 </div>
-                <button type="button" id="historyBtn" style="margin-left: auto; padding: 8px 16px; background: #764ba2; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">View History</button>
-                <button type="button" id="resetBtn" style="padding: 8px 16px; background: #e0e0e0; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">Change Character</button>
+                <button type="button" id="historyBtn" data-translate="viewHistory" style="margin-left: auto; padding: 8px 16px; background: #764ba2; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">View History</button>
+                <button type="button" id="resetBtn" data-translate="changeCharacter" style="padding: 8px 16px; background: #e0e0e0; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">Change Character</button>
             </div>
 
             <div class="form-group">
-                <label for="prompt">Story Prompt:</label>
-                <textarea id="prompt" placeholder="Describe the scene or story you want to create..." required></textarea>
+                <label data-translate="chooseTemplate">Choose a Story Template:</label>
+                <div id="templateGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; margin-top: 10px;">
+                    <!-- Templates will be populated here -->
+                </div>
             </div>
 
-            <button type="submit" id="generateBtn">Generate Storybook Page</button>
+            <button type="submit" id="generateBtn" data-translate="generateButton" style="display: none;">Generate Storybook</button>
         </form>
 
         <!-- History Modal -->
@@ -240,6 +249,15 @@
 
         <div class="error" id="error"></div>
 
+        <!-- Text Editor Section -->
+        <div id="textEditor" style="display: none; background: white; border-radius: 16px; padding: 30px; margin-top: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+            <h2 style="margin-bottom: 20px; color: #333;" data-translate="editStoryText">Edit Story Text</h2>
+            <div id="pagesEditor"></div>
+            <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
+                <button id="generateImagesBtn" data-translate="generateImages" style="padding: 14px 28px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer;">Generate Images</button>
+            </div>
+        </div>
+
         <div class="result" id="result">
             <div id="storyPages"></div>
             <div id="pageNavigation" style="display: none; margin-top: 20px; text-align: center;">
@@ -247,16 +265,306 @@
                 <span id="pageIndicator" style="font-size: 16px; margin: 0 20px; color: #333;"></span>
                 <button id="nextPage" style="padding: 12px 24px; margin: 0 10px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px;">Next →</button>
             </div>
+            <div style="text-align: center; margin-top: 20px; display: none;" id="exportSection">
+                <button id="exportPdfBtn" data-translate="exportPdf" style="padding: 14px 28px; background: #28a745; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: 600;">📄 Export to PDF</button>
+            </div>
         </div>
     </div>
 
     <script>
         const API_KEY = 'AIzaSyCsRiCoqsUXV0fsmQP1QAh6dijt-Pi0pgo';
 
+        // Translation dictionary
+        const translations = {
+            en: {
+                title: 'Storybook Generator',
+                setupTitle: 'Setup Your Character',
+                uploadPhoto: "Upload Child's Photo:",
+                childName: "Child's Name:",
+                childNamePlaceholder: "Enter child's name...",
+                childAge: "Child's Age:",
+                agePlaceholder: "Age",
+                gender: "Gender:",
+                selectGender: "Select gender...",
+                boy: "Boy",
+                girl: "Girl",
+                favoriteThing: "Favorite Thing to Do:",
+                favoriteThingPlaceholder: "e.g., playing soccer, drawing, exploring...",
+                saveButton: "Save & Continue",
+                viewHistory: "View History",
+                changeCharacter: "Change Character",
+                chooseTemplate: "Choose a Story Template:",
+                generateButton: "Generate Storybook",
+                storyHistory: "Story History",
+                noStories: "No stories generated yet.",
+                viewButton: "View",
+                deleteButton: "Delete",
+                yearsOld: "years old",
+                loves: "Loves",
+                generatingText: "Generating story text",
+                generatingImage: "Generating image",
+                of: "of",
+                editStoryText: "Edit Story Text",
+                generateImages: "Generate Images",
+                regenerateImage: "Regenerate Image",
+                page: "Page",
+                exportPdf: "Export to PDF"
+            },
+            he: {
+                title: 'מחולל ספרי סיפורים',
+                setupTitle: 'הגדר את הדמות שלך',
+                uploadPhoto: 'העלה תמונת ילד:',
+                childName: 'שם הילד:',
+                childNamePlaceholder: 'הכנס את שם הילד...',
+                childAge: 'גיל הילד:',
+                agePlaceholder: 'גיל',
+                gender: 'מין:',
+                selectGender: 'בחר מין...',
+                boy: 'בן',
+                girl: 'בת',
+                favoriteThing: 'הדבר האהוב ביותר לעשות:',
+                favoriteThingPlaceholder: 'למשל, לשחק כדורגל, לצייר, לחקור...',
+                saveButton: 'שמור והמשך',
+                viewHistory: 'צפה בהיסטוריה',
+                changeCharacter: 'שנה דמות',
+                chooseTemplate: 'בחר תבנית סיפור:',
+                generateButton: 'צור ספר סיפורים',
+                storyHistory: 'היסטוריית סיפורים',
+                noStories: 'עדיין לא נוצרו סיפורים.',
+                viewButton: 'צפה',
+                deleteButton: 'מחק',
+                yearsOld: 'שנים',
+                loves: 'אוהב',
+                generatingText: 'מייצר טקסט סיפור',
+                generatingImage: 'מייצר תמונה',
+                of: 'מתוך',
+                editStoryText: 'ערוך טקסט הסיפור',
+                generateImages: 'צור תמונות',
+                regenerateImage: 'צור תמונה מחדש',
+                page: 'עמוד',
+                exportPdf: 'ייצא ל-PDF'
+            }
+        };
+
+        let currentLang = 'en';
+
+        // Saved character data (declare early)
+        let savedCharacter = null;
+        let generatedPages = [];
+        let currentPage = 0;
+        let storyHistory = [];
+        let selectedTemplate = null;
+
+        // Story templates
+        const templates = [
+            {
+                id: 'animal-farm',
+                emoji: '🐄',
+                en: {
+                    title: 'Fun at the Animal Farm',
+                    prompt: 'Write a story about {name}, a {age}-year-old {gender} who visits a fun animal farm and has amazing adventures with farm animals. {name} loves {favoriteThing}.'
+                },
+                he: {
+                    title: 'כיף בחוות החיות',
+                    prompt: 'כתוב סיפור על {name}, {gender} בן {age} שמבקר בחוות חיות מהנה ויוצא להרפתקאות מדהימות עם חיות המשק. {name} אוהב {favoriteThing}.'
+                }
+            },
+            {
+                id: 'our-animals',
+                emoji: '🐾',
+                en: {
+                    title: 'Our Animals',
+                    prompt: 'Write a story about {name}, a {age}-year-old {gender} who learns about different animals and their special characteristics. {name} loves {favoriteThing}.'
+                },
+                he: {
+                    title: 'בעלי החיים של כולנו',
+                    prompt: 'כתוב סיפור על {name}, {gender} בן {age} שלומד על בעלי חיים שונים והתכונות המיוחדות שלהם. {name} אוהב {favoriteThing}.'
+                }
+            },
+            {
+                id: 'hero-of-light',
+                emoji: '💡',
+                en: {
+                    title: 'Hero of Light',
+                    prompt: 'Write a story about {name}, a {age}-year-old {gender} who becomes a hero of light and brings brightness and hope to those in need. {name} loves {favoriteThing}.'
+                },
+                he: {
+                    title: 'גיבור האור',
+                    prompt: 'כתוב סיפור על {name}, {gender} בן {age} שהופך לגיבור האור ומביא בהירות ותקווה לנזקקים. {name} אוהב {favoriteThing}.'
+                }
+            },
+            {
+                id: 'magical-ball-princess',
+                emoji: '👸',
+                en: {
+                    title: 'The Magical Ball Princess',
+                    prompt: 'Write a story about {name}, a {age}-year-old princess who attends a magical ball and experiences a wonderful enchanted evening. {name} loves {favoriteThing}.'
+                },
+                he: {
+                    title: 'נסיכת הנשף הקסומה',
+                    prompt: 'כתוב סיפור על {name}, נסיכה בת {age} שמגיעה לנשף קסום וחווה ערב מכושף ונפלא. {name} אוהבת {favoriteThing}.'
+                }
+            },
+            {
+                id: 'got-sister',
+                emoji: '👧',
+                en: {
+                    title: 'I Got a Sister!',
+                    prompt: 'Write a story about {name}, a {age}-year-old {gender} who becomes a big sibling when a baby sister arrives in the family. {name} loves {favoriteThing}.'
+                },
+                he: {
+                    title: 'נולדה לי אחות!',
+                    prompt: 'כתוב סיפור על {name}, {gender} בן {age} שהופך לאח/ות גדול/ה כשאחות תינוקת מגיעה למשפחה. {name} אוהב {favoriteThing}.'
+                }
+            },
+            {
+                id: 'got-brother',
+                emoji: '👶',
+                en: {
+                    title: 'I Got a Brother!',
+                    prompt: 'Write a story about {name}, a {age}-year-old {gender} who becomes a big sibling when a baby brother arrives in the family. {name} loves {favoriteThing}.'
+                },
+                he: {
+                    title: 'נולד לי אח!',
+                    prompt: 'כתוב סיפור על {name}, {gender} בן {age} שהופך לאח/ות גדול/ה כשאח תינוק מגיע למשפחה. {name} אוהב {favoriteThing}.'
+                }
+            },
+            {
+                id: 'rainbow-hero',
+                emoji: '🌈',
+                en: {
+                    title: 'Rainbow Colors Hero',
+                    prompt: 'Write a story about {name}, a {age}-year-old {gender} who discovers the magic of rainbow colors and uses them to spread joy and happiness. {name} loves {favoriteThing}.'
+                },
+                he: {
+                    title: 'גיבור צבעי הקשת',
+                    prompt: 'כתוב סיפור על {name}, {gender} בן {age} שמגלה את הקסם של צבעי הקשת ומשתמש בהם כדי להפיץ שמחה ואושר. {name} אוהב {favoriteThing}.'
+                }
+            },
+            {
+                id: 'big-kindergarten',
+                emoji: '🎒',
+                en: {
+                    title: 'Moving Up To Big Kindergarten',
+                    prompt: 'Write a story about {name}, a {age}-year-old {gender} who is excited and maybe a little nervous about starting big kindergarten and all the new experiences ahead. {name} loves {favoriteThing}.'
+                },
+                he: {
+                    title: 'עולים לגן גדולים',
+                    prompt: 'כתוב סיפור על {name}, {gender} בן {age} שמתרגש ואולי קצת מודאג מלהתחיל בגן הגדולים וכל החוויות החדשות שמחכות. {name} אוהב {favoriteThing}.'
+                }
+            },
+            {
+                id: 'catch-wave',
+                emoji: '🏄',
+                en: {
+                    title: 'Catch the Wave',
+                    prompt: 'Write a story about {name}, a {age}-year-old {gender} who learns to surf and ride the waves at the beach. {name} loves {favoriteThing}.'
+                },
+                he: {
+                    title: 'לעלות על הגל',
+                    prompt: 'כתוב סיפור על {name}, {gender} בן {age} שלומד לגלוש ולרכוב על הגלים בחוף הים. {name} אוהב {favoriteThing}.'
+                }
+            },
+            {
+                id: 'superhero',
+                emoji: '🦸',
+                en: {
+                    title: 'Superhero',
+                    prompt: 'Write a story about {name}, a {age}-year-old {gender} who discovers they have superpowers and must save their city from danger. {name} loves {favoriteThing}.'
+                },
+                he: {
+                    title: 'גיבור העל',
+                    prompt: 'כתוב סיפור על {name}, {gender} בן {age} שמגלה שיש לו כוחות על ועליו להציל את העיר מסכנה. {name} אוהב {favoriteThing}.'
+                }
+            },
+            {
+                id: 'birthday',
+                emoji: '🎂',
+                en: {
+                    title: "It's My Birthday!",
+                    prompt: 'Write a magical birthday story about {name}, who is turning {age} years old and has the most amazing birthday party with friends and family. {name} loves {favoriteThing}.'
+                },
+                he: {
+                    title: 'יש לי יום הולדת!',
+                    prompt: 'כתוב סיפור קסום על יום ההולדת של {name}, שמלאו לו {age} שנים ויש לו את מסיבת יום ההולדת הכי מדהימה עם חברים ומשפחה. {name} אוהב {favoriteThing}.'
+                }
+            },
+            {
+                id: 'first-grade',
+                emoji: '📚',
+                en: {
+                    title: 'Hello First Grade',
+                    prompt: 'Write a story about {name}, a {age}-year-old {gender} experiencing their exciting first day in first grade, making new friends and discovering new adventures. {name} loves {favoriteThing}.'
+                },
+                he: {
+                    title: 'שלום כיתה א׳',
+                    prompt: 'כתוב סיפור על {name}, {gender} בן {age} שחווה את היום הראשון המרגש שלו בכיתה א, מכיר חברים חדשים ומגלה הרפתקאות חדשות. {name} אוהב {favoriteThing}.'
+                }
+            },
+            {
+                id: 'dinosaur',
+                emoji: '🦕',
+                en: {
+                    title: 'Me and My Dinosaur',
+                    prompt: 'Write a story about {name}, a {age}-year-old {gender} who finds a friendly dinosaur and goes on amazing adventures together. {name} loves {favoriteThing}.'
+                },
+                he: {
+                    title: 'אני והדינוזאור שלי',
+                    prompt: 'כתוב סיפור על {name}, {gender} בן {age} שמוצא דינוזאור ידידותי ויוצא להרפתקאות מדהימות ביחד. {name} אוהב {favoriteThing}.'
+                }
+            },
+            {
+                id: 'first-shoes',
+                emoji: '👟',
+                en: {
+                    title: 'My First Shoes',
+                    prompt: 'Write a story about {name}, a {age}-year-old {gender} who gets their very first pair of shoes and learns to walk and run in them. {name} loves {favoriteThing}.'
+                },
+                he: {
+                    title: 'הנעליים הראשונות שלי',
+                    prompt: 'כתוב סיפור על {name}, {gender} בן {age} שמקבל את זוג הנעליים הראשון שלו ולומד ללכת ולרוץ איתן. {name} אוהב {favoriteThing}.'
+                }
+            }
+        ];
+
+        function translatePage(lang) {
+            currentLang = lang;
+            document.documentElement.dir = lang === 'he' ? 'rtl' : 'ltr';
+
+            // Translate text content
+            document.querySelectorAll('[data-translate]').forEach(element => {
+                const key = element.getAttribute('data-translate');
+                if (translations[lang][key]) {
+                    element.textContent = translations[lang][key];
+                }
+            });
+
+            // Translate placeholders
+            document.querySelectorAll('[data-translate-placeholder]').forEach(element => {
+                const key = element.getAttribute('data-translate-placeholder');
+                if (translations[lang][key]) {
+                    element.placeholder = translations[lang][key];
+                }
+            });
+
+            // Update character details if shown
+            if (savedCharacter && typeof characterDetails !== 'undefined') {
+                characterDetails.textContent = `${savedCharacter.age} ${translations[lang].yearsOld} • ${savedCharacter.gender} • ${translations[lang].loves} ${savedCharacter.favoriteThing}`;
+            }
+
+            localStorage.setItem('language', lang);
+        }
+
+        // Load saved language preference
+        const savedLang = localStorage.getItem('language') || 'en';
+        if (savedLang === 'he') {
+            translatePage('he');
+        }
+
         const setupForm = document.getElementById('setupForm');
         const storyForm = document.getElementById('storyForm');
         const fileInput = document.getElementById('sourceFile');
-        const promptInput = document.getElementById('prompt');
+        const templateGrid = document.getElementById('templateGrid');
         const kidNameInput = document.getElementById('kidName');
         const kidAgeInput = document.getElementById('kidAge');
         const kidGenderInput = document.getElementById('kidGender');
@@ -279,12 +587,57 @@
         const historyModal = document.getElementById('historyModal');
         const closeHistoryBtn = document.getElementById('closeHistory');
         const historyList = document.getElementById('historyList');
+        const langToggle = document.getElementById('langToggle');
+        const textEditor = document.getElementById('textEditor');
+        const pagesEditor = document.getElementById('pagesEditor');
+        const generateImagesBtn = document.getElementById('generateImagesBtn');
+        const exportSection = document.getElementById('exportSection');
+        const exportPdfBtn = document.getElementById('exportPdfBtn');
 
-        // Saved character data
-        let savedCharacter = null;
-        let generatedPages = [];
-        let currentPage = 0;
-        let storyHistory = [];
+        // Language toggle
+        langToggle.addEventListener('click', () => {
+            const newLang = currentLang === 'en' ? 'he' : 'en';
+            translatePage(newLang);
+            renderTemplates();
+        });
+
+        // Render template cards
+        function renderTemplates() {
+            templateGrid.innerHTML = '';
+            templates.forEach(template => {
+                const card = document.createElement('div');
+                card.style.cssText = `
+                    background: ${selectedTemplate?.id === template.id ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : '#f8f9ff'};
+                    border: 3px solid ${selectedTemplate?.id === template.id ? '#667eea' : '#e0e0e0'};
+                    border-radius: 12px;
+                    padding: 20px;
+                    text-align: center;
+                    cursor: pointer;
+                    transition: all 0.3s;
+                    color: ${selectedTemplate?.id === template.id ? 'white' : '#333'};
+                `;
+                card.innerHTML = `
+                    <div style="font-size: 48px; margin-bottom: 10px;">${template.emoji}</div>
+                    <div style="font-weight: 600; font-size: 14px;">${template[currentLang].title}</div>
+                `;
+                card.addEventListener('click', () => {
+                    selectedTemplate = template;
+                    renderTemplates();
+                    document.getElementById('generateBtn').style.display = 'block';
+                });
+                card.addEventListener('mouseenter', () => {
+                    if (selectedTemplate?.id !== template.id) {
+                        card.style.transform = 'translateY(-5px)';
+                        card.style.boxShadow = '0 8px 16px rgba(0,0,0,0.15)';
+                    }
+                });
+                card.addEventListener('mouseleave', () => {
+                    card.style.transform = 'translateY(0)';
+                    card.style.boxShadow = 'none';
+                });
+                templateGrid.appendChild(card);
+            });
+        }
 
         // Load saved character and history from server on page load
         window.addEventListener('DOMContentLoaded', async () => {
@@ -295,12 +648,21 @@
                     if (response.ok) {
                         savedCharacter = await response.json();
                         showStoryForm();
+                        renderTemplates();
                         await loadHistory();
                     } else {
+                        // Character not found, clear localStorage and show setup form
                         localStorage.removeItem('characterId');
+                        savedCharacter = null;
+                        setupForm.style.display = 'block';
+                        storyForm.style.display = 'none';
                     }
                 } catch (error) {
                     console.error('Error loading character:', error);
+                    localStorage.removeItem('characterId');
+                    savedCharacter = null;
+                    setupForm.style.display = 'block';
+                    storyForm.style.display = 'none';
                 }
             }
         });
@@ -454,9 +816,16 @@
             const story = storyHistory[index];
             generatedPages = story.pages;
             currentPage = 0;
+
+            // Set the selected template based on story's templateId
+            if (story.templateId) {
+                selectedTemplate = templates.find(t => t.id === story.templateId);
+            }
+
             displayCurrentPage();
             result.classList.add('active');
             pageNavigation.style.display = 'block';
+            exportSection.style.display = 'block';
             historyModal.style.display = 'none';
         };
 
@@ -506,10 +875,21 @@
             const page = generatedPages[currentPage];
             storyPages.innerHTML = `
                 <div style="background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);">
-                    ${page.imageData ? `<img src="data:${page.imageData.mimeType};base64,${page.imageData.data}" alt="Page ${currentPage + 1}" style="width: 100%; display: block;">` : ''}
+                    ${page.imageData ? `
+                        <div style="position: relative;">
+                            <img src="data:${page.imageData.mimeType};base64,${page.imageData.data}" alt="Page ${currentPage + 1}" style="width: 100%; display: block;">
+                            <button id="regenerateImageBtn" data-translate="regenerateImage" style="position: absolute; bottom: 10px; right: 10px; padding: 10px 20px; background: rgba(102, 126, 234, 0.9); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; backdrop-filter: blur(5px);">Regenerate Image</button>
+                        </div>
+                    ` : '<div style="background: #f0f0f0; padding: 60px; text-align: center; color: #999;">No image generated</div>'}
                     <div style="padding: 25px; background: linear-gradient(135deg, #f8f9ff 0%, #fff 100%);">
-                        <div style="font-size: 18px; line-height: 1.6; color: #333; font-family: 'Georgia', serif;">
+                        <div id="textDisplayMode${currentPage}" style="font-size: 18px; line-height: 1.6; color: #333; font-family: 'Georgia', serif;">
                             ${page.text}
+                        </div>
+                        <textarea id="textEditMode${currentPage}" style="display: none; width: 100%; min-height: 120px; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 16px; font-family: 'Georgia', serif; resize: vertical;">${page.text}</textarea>
+                        <div style="margin-top: 15px; display: flex; gap: 10px; justify-content: flex-end;">
+                            <button id="editTextBtn${currentPage}" style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">Edit Text</button>
+                            <button id="saveTextBtn${currentPage}" style="display: none; padding: 8px 16px; background: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">Save</button>
+                            <button id="cancelTextBtn${currentPage}" style="display: none; padding: 8px 16px; background: #dc3545; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">Cancel</button>
                         </div>
                     </div>
                 </div>
@@ -517,22 +897,228 @@
             pageIndicator.textContent = `Page ${currentPage + 1} of ${generatedPages.length}`;
             prevPageBtn.disabled = currentPage === 0;
             nextPageBtn.disabled = currentPage === generatedPages.length - 1;
+
+            // Add regenerate button listener
+            const regenerateBtn = document.getElementById('regenerateImageBtn');
+            if (regenerateBtn) {
+                regenerateBtn.addEventListener('click', () => regenerateCurrentImage());
+            }
+
+            // Add text editing listeners
+            const editBtn = document.getElementById(`editTextBtn${currentPage}`);
+            const saveBtn = document.getElementById(`saveTextBtn${currentPage}`);
+            const cancelBtn = document.getElementById(`cancelTextBtn${currentPage}`);
+            const textDisplay = document.getElementById(`textDisplayMode${currentPage}`);
+            const textEdit = document.getElementById(`textEditMode${currentPage}`);
+
+            editBtn.addEventListener('click', () => {
+                textDisplay.style.display = 'none';
+                textEdit.style.display = 'block';
+                editBtn.style.display = 'none';
+                saveBtn.style.display = 'inline-block';
+                cancelBtn.style.display = 'inline-block';
+            });
+
+            saveBtn.addEventListener('click', () => {
+                generatedPages[currentPage].text = textEdit.value;
+                textDisplay.textContent = textEdit.value;
+                textDisplay.style.display = 'block';
+                textEdit.style.display = 'none';
+                editBtn.style.display = 'inline-block';
+                saveBtn.style.display = 'none';
+                cancelBtn.style.display = 'none';
+            });
+
+            cancelBtn.addEventListener('click', () => {
+                textEdit.value = generatedPages[currentPage].text;
+                textDisplay.style.display = 'block';
+                textEdit.style.display = 'none';
+                editBtn.style.display = 'inline-block';
+                saveBtn.style.display = 'none';
+                cancelBtn.style.display = 'none';
+            });
         }
 
-        // Story form submission
+        // Regenerate image for current page
+        async function regenerateCurrentImage() {
+            loading.classList.add('active');
+            loading.querySelector('p').textContent = `${translations[currentLang].generatingImage}...`;
+
+            try {
+                const base64Data = savedCharacter.image.split(',')[1];
+                const storyText = generatedPages[currentPage].text;
+                const imagePrompt = `Based on this source image, create a hyper-realistic photo depicting this scene: ${storyText}\n\nThe person is ${savedCharacter.name}, a ${savedCharacter.age}-year-old ${savedCharacter.gender}.\n\nIMPORTANT: Generate a realistic photograph using the source image as reference for the person's appearance. Show the scene described in the text. DO NOT include any text, words, letters, or captions in the image. The image should be a pure photograph with NO TEXT whatsoever.`;
+
+                const imageResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:streamGenerateContent?alt=sse`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-goog-api-key': API_KEY
+                    },
+                    body: JSON.stringify({
+                        contents: [{
+                            role: "user",
+                            parts: [
+                                {
+                                    text: imagePrompt
+                                },
+                                {
+                                    inline_data: {
+                                        mime_type: 'image/jpeg',
+                                        data: base64Data
+                                    }
+                                }
+                            ]
+                        }],
+                        generationConfig: {
+                            responseModalities: ["IMAGE"]
+                        }
+                    })
+                });
+
+                if (!imageResponse.ok) {
+                    const errorData = await imageResponse.json();
+                    throw new Error(errorData.error?.message || 'Failed to generate image');
+                }
+
+                // Process image streaming response
+                let imageReader = imageResponse.body.getReader();
+                let imageDecoder = new TextDecoder();
+                let imageBuffer = '';
+                let imageData = null;
+
+                while (true) {
+                    const { done, value } = await imageReader.read();
+                    if (done) break;
+
+                    imageBuffer += imageDecoder.decode(value, { stream: true });
+                    const lines = imageBuffer.split('\n');
+                    imageBuffer = lines.pop();
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            try {
+                                const jsonData = JSON.parse(line.slice(6));
+                                if (jsonData.candidates?.[0]?.content?.parts) {
+                                    for (const part of jsonData.candidates[0].content.parts) {
+                                        if (part.inlineData?.data || part.inline_data?.data) {
+                                            imageData = {
+                                                data: part.inlineData?.data || part.inline_data?.data,
+                                                mimeType: part.inlineData?.mimeType || part.inline_data?.mime_type || 'image/png'
+                                            };
+                                        }
+                                    }
+                                }
+                            } catch (e) {
+                                console.warn('Failed to parse image chunk:', e);
+                            }
+                        }
+                    }
+                }
+
+                generatedPages[currentPage].imageData = imageData;
+                displayCurrentPage();
+
+            } catch (err) {
+                showError(err.message);
+            } finally {
+                loading.classList.remove('active');
+            }
+        }
+
+        // Export to PDF
+        exportPdfBtn.addEventListener('click', async () => {
+            try {
+                exportPdfBtn.disabled = true;
+                exportPdfBtn.textContent = 'Generating PDF...';
+
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const pageWidth = pdf.internal.pageSize.getWidth();
+                const pageHeight = pdf.internal.pageSize.getHeight();
+
+                // Create temporary container for rendering
+                const container = document.createElement('div');
+                container.style.position = 'fixed';
+                container.style.left = '-9999px';
+                container.style.width = '794px'; // A4 width in pixels at 96 DPI
+                container.style.background = 'white';
+                container.style.fontFamily = 'Arial, sans-serif';
+                document.body.appendChild(container);
+
+                // Add title page with profile picture
+                container.innerHTML = `
+                    <div style="width: 794px; height: 1123px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; direction: ${currentLang === 'he' ? 'rtl' : 'ltr'};">
+                        <img src="${savedCharacter.image}" style="width: 200px; height: 200px; border-radius: 50%; object-fit: cover; margin-bottom: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+                        <h1 style="font-size: 48px; margin-bottom: 20px; color: #667eea;">${selectedTemplate[currentLang].title}</h1>
+                        <h2 style="font-size: 32px; color: #333;">${savedCharacter.name}</h2>
+                    </div>
+                `;
+                const titleCanvas = await html2canvas(container, { scale: 2 });
+                const titleImg = titleCanvas.toDataURL('image/png');
+                pdf.addImage(titleImg, 'PNG', 0, 0, pageWidth, pageHeight);
+
+                // Add story pages
+                for (let i = 0; i < generatedPages.length; i++) {
+                    const page = generatedPages[i];
+                    pdf.addPage();
+
+                    // Create page content
+                    container.innerHTML = `
+                        <div style="width: 794px; min-height: 1123px; padding: 40px; direction: ${currentLang === 'he' ? 'rtl' : 'ltr'};">
+                            ${page.imageData ? `<img src="data:${page.imageData.mimeType};base64,${page.imageData.data}" style="width: 100%; height: auto; margin-bottom: 20px; border-radius: 8px;">` : ''}
+                            <p style="font-size: 24px; line-height: 1.6; color: #333; text-align: ${currentLang === 'he' ? 'right' : 'left'}; font-family: Arial, sans-serif;">${page.text}</p>
+                            <div style="position: absolute; bottom: 20px; width: calc(100% - 80px); text-align: center; font-size: 16px; color: #666;">
+                                ${translations[currentLang].page} ${i + 1}
+                            </div>
+                        </div>
+                    `;
+
+                    const pageCanvas = await html2canvas(container, { scale: 2 });
+                    const pageImg = pageCanvas.toDataURL('image/png');
+                    pdf.addImage(pageImg, 'PNG', 0, 0, pageWidth, pageHeight);
+                }
+
+                // Clean up
+                document.body.removeChild(container);
+
+                // Save PDF
+                const filename = `${savedCharacter.name}_${selectedTemplate[currentLang].title.replace(/\s+/g, '_')}.pdf`;
+                pdf.save(filename);
+
+                exportPdfBtn.disabled = false;
+                exportPdfBtn.textContent = translations[currentLang].exportPdf;
+
+            } catch (err) {
+                console.error('PDF export error:', err);
+                showError('Failed to export PDF: ' + err.message);
+                exportPdfBtn.disabled = false;
+                exportPdfBtn.textContent = translations[currentLang].exportPdf;
+            }
+        });
+
+        // Story form submission - Generate text only
         storyForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            const prompt = promptInput.value.trim();
-
-            if (!prompt) {
-                showError('Please enter a story prompt.');
+            if (!selectedTemplate) {
+                showError('Please select a story template.');
                 return;
             }
+
+            // Build prompt from template
+            const templatePrompt = selectedTemplate[currentLang].prompt
+                .replace(/\{name\}/g, savedCharacter.name)
+                .replace(/\{age\}/g, savedCharacter.age)
+                .replace(/\{gender\}/g, savedCharacter.gender)
+                .replace(/\{favoriteThing\}/g, savedCharacter.favoriteThing);
+
+            const prompt = templatePrompt;
 
             // Hide previous results and errors
             result.classList.remove('active');
             error.classList.remove('active');
+            textEditor.style.display = 'none';
             loading.classList.add('active');
             pageNavigation.style.display = 'none';
             generateBtn.disabled = true;
@@ -541,15 +1127,35 @@
             currentPage = 0;
 
             try {
-                // Use saved character image
-                const base64Data = savedCharacter.image.split(',')[1];
+                // Translate the prompt to Hebrew if needed
+                let translatedPrompt = prompt;
+                if (currentLang === 'he') {
+                    const translateResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-goog-api-key': API_KEY
+                        },
+                        body: JSON.stringify({
+                            contents: [{
+                                role: "user",
+                                parts: [{
+                                    text: `Translate this to English: ${prompt}`
+                                }]
+                            }]
+                        })
+                    });
+                    const translateData = await translateResponse.json();
+                    if (translateData.candidates?.[0]?.content?.parts?.[0]?.text) {
+                        translatedPrompt = translateData.candidates[0].content.parts[0].text;
+                    }
+                }
 
-                // Generate 3 pages
+                // Generate 3 pages of text
                 for (let pageNum = 1; pageNum <= 3; pageNum++) {
-                    // Stage 1: Generate story text first
-                    loading.querySelector('p').textContent = `Generating story text ${pageNum} of 3...`;
+                    loading.querySelector('p').textContent = `${translations[currentLang].generatingText} ${pageNum} ${translations[currentLang].of} 3...`;
 
-                    const textPrompt = `Write page ${pageNum} of a 3-page children's story about: ${prompt}\n\nThe main character is ${savedCharacter.name}, a ${savedCharacter.age}-year-old ${savedCharacter.gender} who loves ${savedCharacter.favoriteThing}.\n\nWrite 2-3 engaging sentences for page ${pageNum} that flows as part of the complete story. Do not reference or describe any images.`;
+                    const textPrompt = `Write ONLY page ${pageNum} of a 3-page children's story about: ${translatedPrompt}\n\nThe main character is ${savedCharacter.name}, a ${savedCharacter.age}-year-old ${savedCharacter.gender} who loves ${savedCharacter.favoriteThing}.\n\nWrite exactly 2-3 engaging sentences for page ${pageNum} that flows as part of the complete story${currentLang === 'he' ? ' IN HEBREW' : ''}. Do not include ANY options, explanations, English text, or meta-commentary. ONLY return the story text itself. Do not reference or describe any images.`;
 
                     const textResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent`, {
                         method: 'POST',
@@ -576,12 +1182,91 @@
                     let storyText = '';
                     if (textData.candidates?.[0]?.content?.parts?.[0]?.text) {
                         storyText = textData.candidates[0].content.parts[0].text;
+
+                        // Clean up the text - remove AI preamble/commentary
+                        storyText = storyText
+                            .replace(/^(Okay|Sure|Here's|Here is|Here are)[^:]*[:]\s*/gi, '')
+                            .replace(/^\*\*Page \d+:\*\*\s*/gi, '')
+                            .replace(/^Page \d+:\s*/gi, '')
+                            .replace(/\[Request interrupted by user\]/gi, '')
+                            .replace(/And here are \d+ engaging .+ sentences to add to the end:\s*/gi, '')
+                            .replace(/Here are \d+ engaging .+ sentences.*?:\s*/gi, '')
+                            .replace(/To add to the end:\s*/gi, '')
+                            .replace(/^(And here's|Here's|And here are|Here are) .*?(sentence|page|text).*?:\s*/gim, '')
+                            // Remove options and explanations
+                            .replace(/\*\*Option \d+.*?\*\*/gi, '')
+                            .replace(/\*\*Explanation of Choices:\*\*/gi, '')
+                            .replace(/\*   \*\*Option \d+:\*\*.*/gi, '')
+                            .replace(/I can provide further pages.*/gi, '')
+                            .split('\n')
+                            .filter(line => !line.match(/^\*\*Option/i) && !line.match(/^\*   /))
+                            .filter(line => !line.match(/Focuses on/i) && !line.match(/More directly/i))
+                            .filter(line => !line.match(/^Explanation/i))
+                            .filter(line => line.trim().length > 0)
+                            .slice(0, 1) // Take only the first non-empty paragraph
+                            .join('\n')
+                            .trim();
                     }
 
-                    // Stage 2: Generate image using the story text context
-                    loading.querySelector('p').textContent = `Generating image ${pageNum} of 3...`;
+                    // Store text without image
+                    generatedPages.push({
+                        text: storyText || `Page ${pageNum} text`,
+                        imageData: null
+                    });
+                }
 
-                    const imagePrompt = `Based on this source image, create a hyper-realistic photo depicting this scene: ${storyText}\n\nThe person is ${savedCharacter.name}, a ${savedCharacter.age}-year-old ${savedCharacter.gender}.\n\nGenerate a realistic photograph using the source image as reference for the person's appearance. Show the scene described in the text.`;
+                // Show text editor
+                loading.classList.remove('active');
+                renderTextEditor();
+                textEditor.style.display = 'block';
+                generateBtn.disabled = false;
+
+            } catch (err) {
+                showError(err.message);
+                loading.querySelector('p').textContent = 'Generating storybook page...';
+            } finally {
+                loading.classList.remove('active');
+                generateBtn.disabled = false;
+            }
+        });
+
+        // Render text editor with editable textareas
+        function renderTextEditor() {
+            pagesEditor.innerHTML = '';
+            generatedPages.forEach((page, index) => {
+                const pageEditor = document.createElement('div');
+                pageEditor.style.cssText = 'margin-bottom: 25px; padding: 20px; background: #f8f9ff; border-radius: 8px; border: 2px solid #e0e0e0;';
+                pageEditor.innerHTML = `
+                    <h3 style="margin-bottom: 10px; color: #667eea;">${translations[currentLang].page} ${index + 1}</h3>
+                    <textarea id="pageText${index}" style="width: 100%; min-height: 100px; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px; font-family: inherit; resize: vertical;">${page.text}</textarea>
+                `;
+                pagesEditor.appendChild(pageEditor);
+            });
+        }
+
+        // Generate images button
+        generateImagesBtn.addEventListener('click', async () => {
+            // Update texts from textareas
+            generatedPages.forEach((page, index) => {
+                const textarea = document.getElementById(`pageText${index}`);
+                if (textarea) {
+                    page.text = textarea.value;
+                }
+            });
+
+            textEditor.style.display = 'none';
+            loading.classList.add('active');
+            generateImagesBtn.disabled = true;
+
+            try {
+                const base64Data = savedCharacter.image.split(',')[1];
+
+                // Generate images for all pages
+                for (let pageNum = 0; pageNum < generatedPages.length; pageNum++) {
+                    loading.querySelector('p').textContent = `${translations[currentLang].generatingImage} ${pageNum + 1} ${translations[currentLang].of} ${generatedPages.length}...`;
+
+                    const storyText = generatedPages[pageNum].text;
+                    const imagePrompt = `Based on this source image, create a hyper-realistic photo depicting this scene: ${storyText}\n\nThe person is ${savedCharacter.name}, a ${savedCharacter.age}-year-old ${savedCharacter.gender}.\n\nIMPORTANT: Generate a realistic photograph using the source image as reference for the person's appearance. Show the scene described in the text. DO NOT include any text, words, letters, or captions in the image. The image should be a pure photograph with NO TEXT whatsoever.`;
 
                     const imageResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:streamGenerateContent?alt=sse`, {
                         method: 'POST',
@@ -650,47 +1335,58 @@
                         }
                     }
 
-                    // Store the page
-                    generatedPages.push({
-                        imageData: imageData,
-                        text: storyText || `Page ${pageNum} text`
-                    });
+                    generatedPages[pageNum].imageData = imageData;
 
-                    console.log(`Page ${pageNum} generated`);
+                    if (!imageData) {
+                        console.warn(`No image data generated for page ${pageNum + 1}`);
+                    }
                 }
 
                 // Display first page
                 displayCurrentPage();
                 result.classList.add('active');
                 pageNavigation.style.display = 'block';
+                exportSection.style.display = 'block';
                 loading.querySelector('p').textContent = 'Generating storybook page...';
 
-                // Save to server
+                // Save to server - always save, even if some images failed
                 try {
                     const response = await fetch('/api/stories', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             characterId: savedCharacter.id,
-                            prompt: prompt,
+                            prompt: selectedTemplate[currentLang].title,
+                            templateId: selectedTemplate.id,
                             pages: generatedPages
                         })
                     });
 
                     if (response.ok) {
                         const savedStory = await response.json();
-                        await loadHistory(); // Reload history
+                        await loadHistory();
+
+                        // Warn if some images didn't generate
+                        const failedImages = generatedPages.filter(p => !p.imageData).length;
+                        if (failedImages > 0) {
+                            console.warn(`${failedImages} image(s) failed to generate. You can regenerate them individually.`);
+                        }
+                    } else {
+                        const errorData = await response.json();
+                        console.error('Failed to save story:', errorData);
+                        showError('Failed to save story: ' + (errorData.error || 'Unknown error'));
                     }
                 } catch (error) {
                     console.error('Failed to save story:', error);
+                    showError('Failed to save story: ' + error.message);
                 }
 
             } catch (err) {
                 showError(err.message);
-                loading.querySelector('p').textContent = 'Generating storybook page...';
+                console.error('Image generation error:', err);
             } finally {
                 loading.classList.remove('active');
-                generateBtn.disabled = false;
+                generateImagesBtn.disabled = false;
             }
         });
 

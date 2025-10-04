@@ -3,12 +3,16 @@ import db from '@/lib/db';
 
 export async function POST(request: NextRequest) {
   try {
-    const { characterId, prompt, pages } = await request.json();
+    const { characterId, prompt, templateId, pages } = await request.json();
+
+    if (!characterId || !prompt || !pages || !Array.isArray(pages)) {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
 
     const storyStmt = db.prepare(
-      'INSERT INTO stories (character_id, prompt) VALUES (?, ?)'
+      'INSERT INTO stories (character_id, prompt, template_id) VALUES (?, ?, ?)'
     );
-    const storyResult = storyStmt.run(characterId, prompt);
+    const storyResult = storyStmt.run(characterId, prompt, templateId || null);
     const storyId = storyResult.lastInsertRowid;
 
     const pageStmt = db.prepare(
@@ -22,7 +26,7 @@ export async function POST(request: NextRequest) {
           index + 1,
           page.imageData?.data || null,
           page.imageData?.mimeType || null,
-          page.text
+          page.text || ''
         );
       });
     });
@@ -31,7 +35,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ id: storyId, characterId, prompt });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('Error saving story:', error);
+    return NextResponse.json({ error: error.message || 'Failed to save story' }, { status: 500 });
   }
 }
 
@@ -57,7 +62,8 @@ export async function GET(request: NextRequest) {
         id: story.id,
         characterId: story.character_id,
         prompt: story.prompt,
-        createdAt: story.created_at,
+        templateId: story.template_id,
+        timestamp: story.created_at,
         pages: pages.map(p => ({
           pageNumber: p.page_number,
           imageData: p.image_data ? {
