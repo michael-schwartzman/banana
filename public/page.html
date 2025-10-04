@@ -213,7 +213,8 @@
                     <div id="characterName" style="font-weight: 600; font-size: 16px; color: #333;"></div>
                     <div id="characterDetails" style="font-size: 14px; color: #666;"></div>
                 </div>
-                <button type="button" id="resetBtn" style="margin-left: auto; padding: 8px 16px; background: #e0e0e0; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">Change Character</button>
+                <button type="button" id="historyBtn" style="margin-left: auto; padding: 8px 16px; background: #764ba2; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">View History</button>
+                <button type="button" id="resetBtn" style="padding: 8px 16px; background: #e0e0e0; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">Change Character</button>
             </div>
 
             <div class="form-group">
@@ -223,6 +224,15 @@
 
             <button type="submit" id="generateBtn">Generate Storybook Page</button>
         </form>
+
+        <!-- History Modal -->
+        <div id="historyModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; overflow-y: auto;">
+            <div style="max-width: 900px; margin: 50px auto; background: white; border-radius: 16px; padding: 30px; position: relative;">
+                <button id="closeHistory" style="position: absolute; top: 20px; right: 20px; background: #e0e0e0; border: none; border-radius: 50%; width: 35px; height: 35px; cursor: pointer; font-size: 20px; line-height: 1;">×</button>
+                <h2 style="margin-bottom: 25px; color: #333;">Story History</h2>
+                <div id="historyList"></div>
+            </div>
+        </div>
 
         <div class="loading" id="loading">
             <p>Generating storybook page...</p>
@@ -265,20 +275,51 @@
         const prevPageBtn = document.getElementById('prevPage');
         const nextPageBtn = document.getElementById('nextPage');
         const pageIndicator = document.getElementById('pageIndicator');
+        const historyBtn = document.getElementById('historyBtn');
+        const historyModal = document.getElementById('historyModal');
+        const closeHistoryBtn = document.getElementById('closeHistory');
+        const historyList = document.getElementById('historyList');
 
         // Saved character data
         let savedCharacter = null;
         let generatedPages = [];
         let currentPage = 0;
+        let storyHistory = [];
 
-        // Load saved character from localStorage on page load
-        window.addEventListener('DOMContentLoaded', () => {
-            const saved = localStorage.getItem('storybookCharacter');
-            if (saved) {
-                savedCharacter = JSON.parse(saved);
-                showStoryForm();
+        // Load saved character and history from server on page load
+        window.addEventListener('DOMContentLoaded', async () => {
+            const savedCharacterId = localStorage.getItem('characterId');
+            if (savedCharacterId) {
+                try {
+                    const response = await fetch(`/api/characters?id=${savedCharacterId}`);
+                    if (response.ok) {
+                        savedCharacter = await response.json();
+                        showStoryForm();
+                        await loadHistory();
+                    } else {
+                        localStorage.removeItem('characterId');
+                    }
+                } catch (error) {
+                    console.error('Error loading character:', error);
+                }
             }
         });
+
+        async function loadHistory() {
+            if (!savedCharacter) return;
+            try {
+                const response = await fetch(`/api/stories?characterId=${savedCharacter.id}`);
+                if (response.ok) {
+                    const stories = await response.json();
+                    storyHistory = await Promise.all(stories.map(async (s: any) => {
+                        const detailResponse = await fetch(`/api/stories?id=${s.id}`);
+                        return await detailResponse.json();
+                    }));
+                }
+            } catch (error) {
+                console.error('Error loading history:', error);
+            }
+        }
 
         fileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
@@ -309,31 +350,110 @@
                 return;
             }
 
-            // Save character data
+            // Save character data to server
             const reader = new FileReader();
-            reader.onload = (e) => {
-                savedCharacter = {
-                    image: e.target.result,
-                    name: kidName,
-                    age: kidAge,
-                    gender: kidGender,
-                    favoriteThing: favoriteThing
-                };
-                localStorage.setItem('storybookCharacter', JSON.stringify(savedCharacter));
-                showStoryForm();
+            reader.onload = async (e) => {
+                try {
+                    const response = await fetch('/api/characters', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            name: kidName,
+                            age: kidAge,
+                            gender: kidGender,
+                            favoriteThing: favoriteThing,
+                            image: e.target.result
+                        })
+                    });
+
+                    if (!response.ok) throw new Error('Failed to save character');
+
+                    savedCharacter = await response.json();
+                    savedCharacter.image = e.target.result;
+                    localStorage.setItem('characterId', savedCharacter.id);
+                    showStoryForm();
+                } catch (error) {
+                    showError('Failed to save character: ' + error.message);
+                }
             };
             reader.readAsDataURL(file);
         });
 
         // Reset button
         resetBtn.addEventListener('click', () => {
-            localStorage.removeItem('storybookCharacter');
+            localStorage.removeItem('characterId');
             savedCharacter = null;
             setupForm.style.display = 'block';
             storyForm.style.display = 'none';
             setupForm.reset();
             imagePreview.style.display = 'none';
         });
+
+        // History button
+        historyBtn.addEventListener('click', () => {
+            displayHistory();
+            historyModal.style.display = 'block';
+        });
+
+        // Close history modal
+        closeHistoryBtn.addEventListener('click', () => {
+            historyModal.style.display = 'none';
+        });
+
+        // Display history
+        function displayHistory() {
+            if (storyHistory.length === 0) {
+                historyList.innerHTML = '<p style="text-align: center; color: #666; padding: 40px;">No stories generated yet.</p>';
+                return;
+            }
+
+            historyList.innerHTML = storyHistory.map((story, index) => `
+                <div style="border: 2px solid #e0e0e0; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
+                        <div>
+                            <h3 style="margin: 0 0 5px 0; color: #333;">${story.prompt}</h3>
+                            <p style="margin: 0; font-size: 14px; color: #666;">${new Date(story.timestamp).toLocaleString()}</p>
+                        </div>
+                        <button onclick="loadStory(${index})" style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">View</button>
+                        <button onclick="deleteStory(${index})" style="padding: 8px 16px; background: #dc3545; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; margin-left: 8px;">Delete</button>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px;">
+                        ${story.pages.slice(0, 3).map(page =>
+                            page.imageData ? `<img src="data:${page.imageData.mimeType};base64,${page.imageData.data}" style="width: 100%; border-radius: 4px; aspect-ratio: 1; object-fit: cover;">` : ''
+                        ).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Load story from history
+        window.loadStory = function(index) {
+            const story = storyHistory[index];
+            generatedPages = story.pages;
+            currentPage = 0;
+            displayCurrentPage();
+            result.classList.add('active');
+            pageNavigation.style.display = 'block';
+            historyModal.style.display = 'none';
+        };
+
+        // Delete story from history
+        window.deleteStory = async function(index) {
+            if (confirm('Are you sure you want to delete this story?')) {
+                const story = storyHistory[index];
+                try {
+                    const response = await fetch(`/api/stories?id=${story.id}`, {
+                        method: 'DELETE'
+                    });
+                    if (response.ok) {
+                        storyHistory.splice(index, 1);
+                        displayHistory();
+                    }
+                } catch (error) {
+                    showError('Failed to delete story: ' + error.message);
+                }
+            }
+        };
 
         // Show story form with saved character
         function showStoryForm() {
@@ -494,6 +614,26 @@
                 result.classList.add('active');
                 pageNavigation.style.display = 'block';
                 loading.querySelector('p').textContent = 'Generating storybook page...';
+
+                // Save to server
+                try {
+                    const response = await fetch('/api/stories', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            characterId: savedCharacter.id,
+                            prompt: prompt,
+                            pages: generatedPages
+                        })
+                    });
+
+                    if (response.ok) {
+                        const savedStory = await response.json();
+                        await loadHistory(); // Reload history
+                    }
+                } catch (error) {
+                    console.error('Failed to save story:', error);
+                }
 
             } catch (err) {
                 showError(err.message);
