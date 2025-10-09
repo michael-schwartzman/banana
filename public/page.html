@@ -231,6 +231,15 @@
                 </div>
             </div>
 
+            <div class="form-group" id="pageCountSelector" style="display: none;">
+                <label data-translate="numberOfPages">Number of Pages:</label>
+                <div style="display: flex; gap: 10px; justify-content: center; margin-top: 10px;">
+                    <button type="button" class="page-count-btn" data-pages="3" style="padding: 12px 24px; background: #f8f9ff; border: 2px solid #e0e0e0; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: 600; transition: all 0.3s;">3 Pages</button>
+                    <button type="button" class="page-count-btn" data-pages="5" style="padding: 12px 24px; background: #f8f9ff; border: 2px solid #e0e0e0; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: 600; transition: all 0.3s;">5 Pages</button>
+                    <button type="button" class="page-count-btn" data-pages="10" style="padding: 12px 24px; background: #f8f9ff; border: 2px solid #e0e0e0; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: 600; transition: all 0.3s;">10 Pages</button>
+                </div>
+            </div>
+
             <button type="submit" id="generateBtn" data-translate="generateButton" style="display: none;">Generate Storybook</button>
         </form>
 
@@ -308,7 +317,8 @@
                 generateImages: "Generate Images",
                 regenerateImage: "Regenerate Image",
                 page: "Page",
-                exportPdf: "Export to PDF"
+                exportPdf: "Export to PDF",
+                numberOfPages: "Number of Pages:"
             },
             he: {
                 title: 'מחולל ספרי סיפורים',
@@ -342,7 +352,8 @@
                 generateImages: 'צור תמונות',
                 regenerateImage: 'צור תמונה מחדש',
                 page: 'עמוד',
-                exportPdf: 'ייצא ל-PDF'
+                exportPdf: 'ייצא ל-PDF',
+                numberOfPages: 'מספר עמודים:'
             }
         };
 
@@ -354,6 +365,7 @@
         let currentPage = 0;
         let storyHistory = [];
         let selectedTemplate = null;
+        let selectedPageCount = 3;
 
         // Story templates
         const templates = [
@@ -524,6 +536,18 @@
                     title: 'הנעליים הראשונות שלי',
                     prompt: 'כתוב סיפור על {name}, {gender} בן {age} שמקבל את זוג הנעליים הראשון שלו ולומד ללכת ולרוץ איתן. {name} אוהב {favoriteThing}.'
                 }
+            },
+            {
+                id: 'potty-training',
+                emoji: '🚽',
+                en: {
+                    title: 'Using the Potty',
+                    prompt: 'Write a story about {name}, a {age}-year-old {gender} who is learning to use the potty and successfully goes pee in the potty like a big kid.'
+                },
+                he: {
+                    title: 'להשתמש בסיר',
+                    prompt: 'כתוב סיפור על {name}, {gender} בן {age} שלומד להשתמש בסיר ומצליח לעשות פיפי בסיר כמו ילד גדול.'
+                }
             }
         ];
 
@@ -601,6 +625,28 @@
             renderTemplates();
         });
 
+        // Page count selector
+        document.querySelectorAll('.page-count-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                selectedPageCount = parseInt(this.getAttribute('data-pages'));
+                // Update button styles
+                document.querySelectorAll('.page-count-btn').forEach(b => {
+                    b.style.background = '#f8f9ff';
+                    b.style.borderColor = '#e0e0e0';
+                    b.style.color = '#333';
+                });
+                this.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                this.style.borderColor = '#667eea';
+                this.style.color = 'white';
+            });
+            // Set default selection (3 pages)
+            if (btn.getAttribute('data-pages') === '3') {
+                btn.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                btn.style.borderColor = '#667eea';
+                btn.style.color = 'white';
+            }
+        });
+
         // Render template cards
         function renderTemplates() {
             templateGrid.innerHTML = '';
@@ -623,6 +669,7 @@
                 card.addEventListener('click', () => {
                     selectedTemplate = template;
                     renderTemplates();
+                    document.getElementById('pageCountSelector').style.display = 'block';
                     document.getElementById('generateBtn').style.display = 'block';
                 });
                 card.addEventListener('mouseenter', () => {
@@ -1151,11 +1198,11 @@
                     }
                 }
 
-                // Generate 3 pages of text
-                for (let pageNum = 1; pageNum <= 3; pageNum++) {
-                    loading.querySelector('p').textContent = `${translations[currentLang].generatingText} ${pageNum} ${translations[currentLang].of} 3...`;
+                // Generate pages based on selected count
+                for (let pageNum = 1; pageNum <= selectedPageCount; pageNum++) {
+                    loading.querySelector('p').textContent = `${translations[currentLang].generatingText} ${pageNum} ${translations[currentLang].of} ${selectedPageCount}...`;
 
-                    const textPrompt = `Write ONLY page ${pageNum} of a 3-page children's story about: ${translatedPrompt}\n\nThe main character is ${savedCharacter.name}, a ${savedCharacter.age}-year-old ${savedCharacter.gender} who loves ${savedCharacter.favoriteThing}.\n\nWrite exactly 2-3 engaging sentences for page ${pageNum} that flows as part of the complete story${currentLang === 'he' ? ' IN HEBREW' : ''}. Do not include ANY options, explanations, English text, or meta-commentary. ONLY return the story text itself. Do not reference or describe any images.`;
+                    const textPrompt = `Write ONLY page ${pageNum} of a ${selectedPageCount}-page children's story about: ${translatedPrompt}\n\nThe main character is ${savedCharacter.name}, a ${savedCharacter.age}-year-old ${savedCharacter.gender} who loves ${savedCharacter.favoriteThing}.\n\nWrite exactly 2-3 engaging sentences for page ${pageNum} that flows as part of the complete story${currentLang === 'he' ? ' IN HEBREW' : ''}. Do not include ANY options, explanations, English text, or meta-commentary. ONLY return the story text itself. Do not reference or describe any images.`;
 
                     const textResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent`, {
                         method: 'POST',
@@ -1297,7 +1344,10 @@
 
                     if (!imageResponse.ok) {
                         const errorData = await imageResponse.json();
-                        throw new Error(errorData.error?.message || 'Failed to generate image');
+                        console.error(`Image generation failed for page ${pageNum + 1}:`, errorData);
+                        // Continue to next page instead of throwing
+                        console.warn(`Skipping image for page ${pageNum + 1}, will continue with other pages`);
+                        continue;
                     }
 
                     // Process image streaming response
@@ -1338,7 +1388,10 @@
                     generatedPages[pageNum].imageData = imageData;
 
                     if (!imageData) {
-                        console.warn(`No image data generated for page ${pageNum + 1}`);
+                        console.error(`No image data generated for page ${pageNum + 1}`);
+                        console.error(`Text for page ${pageNum + 1}:`, generatedPages[pageNum].text);
+                    } else {
+                        console.log(`Successfully generated image for page ${pageNum + 1}`);
                     }
                 }
 
@@ -1370,6 +1423,10 @@
                         const failedImages = generatedPages.filter(p => !p.imageData).length;
                         if (failedImages > 0) {
                             console.warn(`${failedImages} image(s) failed to generate. You can regenerate them individually.`);
+                            showError(`${failedImages} image(s) failed to generate. You can regenerate them individually using the "Regenerate Image" button on each page.`);
+                            setTimeout(() => {
+                                error.classList.remove('active');
+                            }, 5000);
                         }
                     } else {
                         const errorData = await response.json();
